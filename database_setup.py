@@ -45,6 +45,12 @@ class MenuItem(Base):
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
+    def __init__(self):
+        self.name = ""
+        self.description = ""
+        self.price = ""
+        self.course = ""
+
     @property
     def serialize(self):
         """Return object data in easily serializeable format"""
