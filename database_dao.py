@@ -9,20 +9,24 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
+
 def getAllRestaurants():
     """ Retrieve all restaurants. """
 
-    return  session.query(Restaurant).order_by(asc(Restaurant.name))
+    return session.query(Restaurant).order_by(asc(Restaurant.name))
+
 
 def getRestaurant(restaurant_id):
     """ Retrieve the restaurant according to restaurant_id. """
 
     return session.query(Restaurant).filter_by(id=restaurant_id).one()
 
+
 def getMenuItem(menu_item_id):
     """ Retrieve the menu item according to menu_item_id. """
 
     return session.query(MenuItem).filter_by(id=menu_item_id).one()
+
 
 def getMenuItems(restaurant_id):
     """ Retrieve all menu items from a restaurant. """
@@ -38,6 +42,7 @@ def createRestaurant(name, user_id):
     session.commit()
     return newRestaurant
 
+
 def update(entity):
     """ Update an entity. """
 
@@ -46,11 +51,13 @@ def update(entity):
 
     return entity
 
+
 def delete(entity):
     """ Delete an entity. """
 
     session.delete(entity)
     session.commit()
+
 
 def createUser(login_session):
     """ Create a new user. """

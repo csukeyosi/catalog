@@ -1,13 +1,13 @@
-from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
-from flask import session as login_session
-
 import random
 import string
 import json
-
 import oauth
-from database_setup import Restaurant, MenuItem
 import database_dao
+from database_setup import Restaurant, MenuItem
+from flask import session as login_session
+from flask import (
+    Flask, render_template, request, redirect, jsonify,
+    url_for, flash)
 
 app = Flask(__name__)
 
@@ -25,9 +25,11 @@ def showLogin():
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                     for x in xrange(32))
     login_session['state'] = state
-    return render_template('login.html',
-        STATE = state, FB_CLIENT_ID = FB_CLIENT_SECRETS['app_id'],
-        GOOGLE_CLIENT_ID = GOOGLE_CLIENT_SECRETS['client_id'])
+    return render_template(
+        'login.html',
+        STATE=state,
+        FB_CLIENT_ID=FB_CLIENT_SECRETS['app_id'],
+        GOOGLE_CLIENT_ID=GOOGLE_CLIENT_SECRETS['client_id'])
 
 
 @app.route('/fbconnect', methods=['POST'])
@@ -59,10 +61,13 @@ def getOutput():
     output += '!</h3>'
     output += '<img src="'
     output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    output += ' " style = "width: 300px; height: 300px;border-radius: '
+    output += '150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;">'
     output += '</br>Redirecting...'
 
-    createFeedback(200, "You are now logged in as %s" % login_session['username'])
+    createFeedback(
+        200,
+        "You are now logged in as %s" % login_session['username'])
 
     return output
 
@@ -92,7 +97,10 @@ def showRestaurants():
     """ Show all restaurants. """
 
     restaurants = database_dao.getAllRestaurants()
-    return render_template('restaurants.html', username=getUsername(), restaurants=restaurants)
+    return render_template(
+        'restaurants.html',
+        username=getUsername(),
+        restaurants=restaurants)
 
 
 def getUsername():
@@ -111,14 +119,17 @@ def getUsername():
 def newRestaurant():
     """ Create a restaurant. """
 
-    if 'user_id' not in login_session:
+    if 'user_id' not in login_session or not oauth.isTokenValid():
         return redirect('/login')
 
     if request.method == 'POST':
         page = "showRestaurants"
         if request.form['name']:
-            newRestaurant = database_dao.createRestaurant(request.form['name'], login_session['user_id'])
-            createFeedback(200, 'New Restaurant %s Successfully Created' % newRestaurant.name)
+            newRestaurant = database_dao.createRestaurant(
+                request.form['name'], login_session['user_id'])
+            createFeedback(
+                200,
+                'New Restaurant %s Successfully Created' % newRestaurant.name)
         else:
             page = "newRestaurant"
             createFeedback(400, 'Name cannot be empty')
@@ -132,7 +143,7 @@ def newRestaurant():
 def editRestaurant(restaurant_id):
     """ Edit a restaurant. """
 
-    if 'user_id' not in login_session:
+    if 'user_id' not in login_session or not oauth.isTokenValid():
         return redirect('/login')
 
     editedRestaurant = database_dao.getRestaurant(restaurant_id)
@@ -146,20 +157,30 @@ def editRestaurant(restaurant_id):
             editedRestaurant.name = request.form['name']
             database_dao.update(editedRestaurant)
 
-            createFeedback(200, 'Restaurant Successfully Edited %s' % editedRestaurant.name)
+            createFeedback(
+                200,
+                'Restaurant Successfully Edited %s' % editedRestaurant.name)
             return redirect(url_for('showRestaurants'))
         else:
-            createFeedback(400, 'Name cannot be empty')
-            return render_template('editRestaurant.html', username = getUsername(), restaurant = editedRestaurant)
+            createFeedback(
+                400,
+                'Name cannot be empty')
+            return render_template(
+                'editRestaurant.html',
+                username=getUsername(),
+                restaurant=editedRestaurant)
     else:
-        return render_template('editRestaurant.html', username = getUsername(), restaurant = editedRestaurant)
+        return render_template(
+            'editRestaurant.html',
+            username=getUsername(),
+            restaurant=editedRestaurant)
 
 
 @app.route('/restaurant/<int:restaurant_id>/delete/', methods=['GET', 'POST'])
 def deleteRestaurant(restaurant_id):
     """ Delete a restaurant. """
 
-    if 'user_id' not in login_session:
+    if 'user_id' not in login_session or not oauth.isTokenValid():
         return redirect('/login')
 
     restaurantToDelete = database_dao.getRestaurant(restaurant_id)
@@ -170,11 +191,18 @@ def deleteRestaurant(restaurant_id):
 
     if request.method == 'POST':
         database_dao.delete(restaurantToDelete)
-        createFeedback(200, '%s Successfully Deleted' % restaurantToDelete.name)
+        createFeedback(
+            200,
+            '%s Successfully Deleted' % restaurantToDelete.name)
 
-        return redirect(url_for('showRestaurants', restaurant_id=restaurant_id))
+        return redirect(
+            url_for(
+                'showRestaurants',
+                restaurant_id=restaurant_id))
     else:
-        return render_template('deleteRestaurant.html', restaurant=restaurantToDelete)
+        return render_template(
+            'deleteRestaurant.html',
+            restaurant=restaurantToDelete)
 
 
 @app.route('/restaurant/<int:restaurant_id>/')
@@ -184,16 +212,26 @@ def showMenu(restaurant_id):
 
     restaurant = database_dao.getRestaurant(restaurant_id)
     items = database_dao.getMenuItems(restaurant_id)
-    can_edit = 'user_id' in login_session and restaurant.user_id  == login_session['user_id']
+    can_edit = (
+        'user_id' in login_session and
+        restaurant.user_id == login_session['user_id'])
 
-    return render_template('menu.html', can_edit=can_edit, username=getUsername(), items=items, restaurant=restaurant, creator=restaurant.user)
+    return render_template(
+        'menu.html',
+        can_edit=can_edit,
+        username=getUsername(),
+        items=items,
+        restaurant=restaurant,
+        creator=restaurant.user)
 
 
-@app.route('/restaurant/<int:restaurant_id>/menu/new/', methods=['GET', 'POST'])
+@app.route(
+    '/restaurant/<int:restaurant_id>/menu/new/',
+    methods=['GET', 'POST'])
 def newMenuItem(restaurant_id):
     """ Create a new menu item. """
 
-    if 'user_id' not in login_session:
+    if 'user_id' not in login_session or not oauth.isTokenValid():
         return redirect('/login')
 
     restaurant = database_dao.getRestaurant(restaurant_id)
@@ -215,23 +253,39 @@ def newMenuItem(restaurant_id):
         newItem.user_id = restaurant.user_id
         newItem.restaurant_id = restaurant_id
 
-        if request.form['name'] and request.form['description'] and request.form['price'] and 'course' in request.form and request.form['course']:
+        if (
+            request.form['name'] and request.form['description'] and
+            request.form['price'] and
+            'course' in request.form and request.form['course']):
             database_dao.update(newItem)
 
-            createFeedback(200, 'New Menu %s Item Successfully Created' % (newItem.name))
-            return redirect(url_for('showMenu', restaurant_id=restaurant_id))
+            createFeedback(
+                200,
+                'New Menu %s Item Successfully Created' % (newItem.name))
+            return redirect(
+                url_for(
+                    'showMenu',
+                    restaurant_id=restaurant_id))
         else:
             createFeedback(400, 'All Information are needed')
-            return render_template('newMenuItem.html', item=newItem, restaurant_id=restaurant_id)
+            return render_template(
+                'newMenuItem.html',
+                item=newItem,
+                restaurant_id=restaurant_id)
     else:
-        return render_template('newMenuItem.html', item={}, restaurant_id=restaurant_id)
+        return render_template(
+            'newMenuItem.html',
+            item={},
+            restaurant_id=restaurant_id)
 
 
-@app.route('/restaurant/<int:restaurant_id>/menu/<int:menu_id>/edit', methods=['GET', 'POST'])
+@app.route(
+    '/restaurant/<int:restaurant_id>/menu/<int:menu_id>/edit',
+    methods=['GET', 'POST'])
 def editMenuItem(restaurant_id, menu_id):
     """ Edit a menu item. """
 
-    if 'user_id' not in login_session:
+    if 'user_id' not in login_session or not oauth.isTokenValid():
         return redirect('/login')
 
     editedItem = database_dao.getMenuItem(menu_id)
@@ -251,23 +305,35 @@ def editMenuItem(restaurant_id, menu_id):
         if request.form['course']:
             editedItem.course = request.form['course']
 
-        if request.form['name'] and request.form['description'] and request.form['price'] and request.form['course']:
+        if (request.form['name'] and
+            request.form['description'] and
+            request.form['price'] and
+            request.form['course']):
             database_dao.update(editedItem)
 
             createFeedback(200, 'Menu Item Successfully Edited')
             return redirect(url_for('showMenu', restaurant_id=restaurant_id))
         else:
             createFeedback(400, 'All Information are needed')
-            return render_template('newMenuItem.html', item = editedItem, restaurant_id = restaurant_id)
+            return render_template(
+                'newMenuItem.html',
+                item=editedItem,
+                restaurant_id=restaurant_id)
     else:
-        return render_template('newMenuItem.html', restaurant_id=restaurant_id, menu_id=menu_id, item=editedItem)
+        return render_template(
+            'newMenuItem.html',
+            restaurant_id=restaurant_id,
+            menu_id=menu_id,
+            item=editedItem)
 
 
-@app.route('/restaurant/<int:restaurant_id>/menu/<int:menu_id>/delete', methods=['GET', 'POST'])
+@app.route(
+    '/restaurant/<int:restaurant_id>/menu/<int:menu_id>/delete',
+    methods=['GET', 'POST'])
 def deleteMenuItem(restaurant_id, menu_id):
     """ Delete a menu item. """
 
-    if 'user_id' not in login_session:
+    if 'user_id' not in login_session or not oauth.isTokenValid():
         return redirect('/login')
 
     restaurant = database_dao.getRestaurant(restaurant_id)
@@ -282,25 +348,31 @@ def deleteMenuItem(restaurant_id, menu_id):
         createFeedback(200, 'Menu Item Successfully Deleted')
         return redirect(url_for('showMenu', restaurant_id=restaurant_id))
     else:
-        return render_template('deleteMenuItem.html', restaurant = restaurant, item = itemToDelete)
+        return render_template(
+            'deleteMenuItem.html',
+            restaurant=restaurant,
+            item=itemToDelete)
 
 
 # JSON APIs to view Restaurant Information
 @app.route('/restaurant/<int:restaurant_id>/menu/JSON')
 def restaurantMenuJSON(restaurant_id):
+    """ Return the restaurant's menu. """
     restaurant = database_dao.getRestaurant(restaurant_id)
     items = database_dao.getMenuItems(restaurant_id)
-    return jsonify(MenuItems=[i.serialize for i in items])
+    return jsonify(menu_items=[i.serialize for i in items])
 
 
 @app.route('/restaurant/<int:restaurant_id>/menu/<int:menu_id>/JSON')
 def menuItemJSON(restaurant_id, menu_id):
+    """ Return the item. """
     Menu_Item = database_dao.getMenuItem(menu_id)
-    return jsonify(Menu_Item=Menu_Item.serialize)
+    return jsonify(menu_item=Menu_Item.serialize)
 
 
 @app.route('/restaurant/JSON')
 def restaurantsJSON():
+    """ Return all restaurants. """
     restaurants = database_dao.getAllRestaurants()
     return jsonify(restaurants=[r.serialize for r in restaurants])
 
