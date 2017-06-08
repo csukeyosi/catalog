@@ -8,14 +8,25 @@ from flask import session as login_session
 from flask import (
     Flask, render_template, request, redirect, jsonify,
     url_for, flash)
+from functools import wraps
+
 
 app = Flask(__name__)
 
+
 GOOGLE_CLIENT_SECRETS = json.loads(
     open('client_secrets.json', 'r').read())['web']
-
 FB_CLIENT_SECRETS = json.loads(
     open('fb_client_secrets.json', 'r').read())['web']
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in login_session or not oauth.isTokenValid():
+            return redirect('/login')
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @app.route('/login')
@@ -116,11 +127,9 @@ def getUsername():
 
 
 @app.route('/restaurant/new/', methods=['GET', 'POST'])
+@login_required
 def newRestaurant():
     """ Create a restaurant. """
-
-    if 'user_id' not in login_session or not oauth.isTokenValid():
-        return redirect('/login')
 
     if request.method == 'POST':
         page = "showRestaurants"
@@ -140,11 +149,9 @@ def newRestaurant():
 
 
 @app.route('/restaurant/<int:restaurant_id>/edit/', methods=['GET', 'POST'])
+@login_required
 def editRestaurant(restaurant_id):
     """ Edit a restaurant. """
-
-    if 'user_id' not in login_session or not oauth.isTokenValid():
-        return redirect('/login')
 
     editedRestaurant = database_dao.getRestaurant(restaurant_id)
 
@@ -177,11 +184,9 @@ def editRestaurant(restaurant_id):
 
 
 @app.route('/restaurant/<int:restaurant_id>/delete/', methods=['GET', 'POST'])
+@login_required
 def deleteRestaurant(restaurant_id):
     """ Delete a restaurant. """
-
-    if 'user_id' not in login_session or not oauth.isTokenValid():
-        return redirect('/login')
 
     restaurantToDelete = database_dao.getRestaurant(restaurant_id)
 
@@ -228,11 +233,9 @@ def showMenu(restaurant_id):
 @app.route(
     '/restaurant/<int:restaurant_id>/menu/new/',
     methods=['GET', 'POST'])
+@login_required
 def newMenuItem(restaurant_id):
     """ Create a new menu item. """
-
-    if 'user_id' not in login_session or not oauth.isTokenValid():
-        return redirect('/login')
 
     restaurant = database_dao.getRestaurant(restaurant_id)
 
@@ -282,11 +285,9 @@ def newMenuItem(restaurant_id):
 @app.route(
     '/restaurant/<int:restaurant_id>/menu/<int:menu_id>/edit',
     methods=['GET', 'POST'])
+@login_required
 def editMenuItem(restaurant_id, menu_id):
     """ Edit a menu item. """
-
-    if 'user_id' not in login_session or not oauth.isTokenValid():
-        return redirect('/login')
 
     editedItem = database_dao.getMenuItem(menu_id)
     restaurant = database_dao.getRestaurant(restaurant_id)
@@ -330,11 +331,9 @@ def editMenuItem(restaurant_id, menu_id):
 @app.route(
     '/restaurant/<int:restaurant_id>/menu/<int:menu_id>/delete',
     methods=['GET', 'POST'])
+@login_required
 def deleteMenuItem(restaurant_id, menu_id):
     """ Delete a menu item. """
-
-    if 'user_id' not in login_session or not oauth.isTokenValid():
-        return redirect('/login')
 
     restaurant = database_dao.getRestaurant(restaurant_id)
     itemToDelete = database_dao.getMenuItem(menu_id)
